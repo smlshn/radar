@@ -30,30 +30,14 @@ jobs:
           echo " Integrator Name: ${{github.event.inputs.integrator_name}}"
           echo "----------------------------------------------------------------------"
 
+      - name: Checkout the code
+        uses: actions/checkout@v3
+        
       - uses: actions/setup-java@v3
         with:
           distribution: 'temurin'
           java-version: '11'
           cache: 'maven'
 
-      - name: Cache Maven packages
-        uses: actions/cache@v2.1.4
-        with:
-          path: ~/.m2
-          key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
-          restore-keys: ${{ runner.os }}-m2
-
-      - name: Checkout the code
-        uses: actions/checkout@v3
-
       - name: Build with Maven
         run: mvn clean package -DskipTests -P${{github.event.inputs.deployment_environment}} --file pom.xml
-
-  show_inputs:
-    runs-on: ubuntu-latest
-    steps:
-      - run: |
-          echo "---------------------------- PARAMETERS ------------------------------"
-          echo "Deployment Environment: ${{github.event.inputs.deployment_environment}}"
-          echo "Integrator Name: ${{github.event.inputs.integrator_name}}"
-          echo "---------------------------- PARAMETERS ------------------------------"
