@@ -1,0 +1,68 @@
+# This workflow will build a Java project with Maven, and cache/restore any dependencies to improve the workflow execution time
+# For more information see: https://help.github.com/actions/language-and-framework-guides/building-and-testing-java-with-maven
+
+name: Integrator CI/CD
+on:
+  push:
+    branches: [ "master" ]
+  pull_request:
+    branches: [ "master" ]
+
+  workflow_dispatch:
+    inputs:
+      deployment_environment:
+        description: 'Deployment Environment'
+        required: true
+        default: '2.5.3'
+      integrator_name:
+        description: 'Integrator Name'
+        required: true
+        default: 'true'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - run: |
+          echo "---------------------------- PARAMETERS ------------------------------"
+          echo " Deployment Environment: ${{github.event.inputs.deployment_environment}}"
+          echo " Integrator Name: ${{github.event.inputs.integrator_name}}"
+          echo "----------------------------------------------------------------------"
+
+      - uses: actions/setup-java@v3
+        with:
+          distribution: 'temurin'
+          java-version: '11'
+
+      - name: Download Maven
+        run: |
+          curl -sL https://www-eu.apache.org/dist/maven/maven-3/3.6.3/binaries/apache-maven-3.6.3-bin.zip -o maven.zip
+          apt-get update
+          apt-get -y install unzip
+          unzip -d /usr/share maven.zip
+          rm maven.zip
+          ln -s /usr/share/apache-maven-3.6.3/bin/mvn /usr/bin/mvn
+          echo "M2_HOME=/usr/share/apache-maven-3.6.3" | tee -a /etc/environment
+
+      - name: Cache Maven packages
+        uses: actions/cache@v2.1.4
+        with:
+          path: /root/.m2
+          key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
+          restore-keys: ${{ runner.os }}-m2
+
+      - name: Checkout the code
+        uses: actions/checkout@v3
+
+      - name: Build with Maven
+        run: mvn clean package -DskipTests -P${{github.event.inputs.deployment_environment}} --file pom.xml
+
+  show_inputs:
+    runs-on: ubuntu-latest
+    steps:
+      - run: |
+          echo "---------------------------- PARAMETERS ------------------------------"
+          echo "Deployment Environment: ${{github.event.inputs.deployment_environment}}"
+          echo "Integrator Name: ${{github.event.inputs.integrator_name}}"
+          echo "---------------------------- PARAMETERS ------------------------------"
